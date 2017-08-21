@@ -691,6 +691,17 @@ def check_rust(file_name, lines):
             # we now erase previous entries
             prev_mod = {}
 
+        # derive traits should be alphabetically ordered
+        if line.startswith("#[derive"):
+            # strip "#[derive(" from the begin and ")]" from the end and split
+            derives = re.split(r' *, *', line[9:-2])
+            # sort, compare and report
+            sorted_derives = sorted(derives)
+            if sorted_derives != derives:
+                yield(idx + 1, decl_message.format("derive attribute list")
+                          + decl_expected.format(sorted_derives)
+                          + decl_found.format(derives))
+
 
 # Avoid flagging <Item=Foo> constructs
 def is_associated_type(match, line):
