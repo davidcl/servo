@@ -7,7 +7,7 @@
 #![deny(unsafe_code)]
 
 use app_units::{Au, MAX_AU};
-use block::{BlockFlow, MarginsMayCollapseFlag};
+use block::BlockFlow;
 use context::LayoutContext;
 use display_list_builder::{DisplayListBuildState, FlexFlowDisplayListBuilding};
 use euclid::Point2D;
@@ -17,6 +17,7 @@ use flow::{Flow, FlowClass, ImmutableFlowUtils, OpaqueFlow};
 use flow::{INLINE_POSITION_IS_STATIC, IS_ABSOLUTELY_POSITIONED};
 use fragment::{Fragment, FragmentBorderBoxIterator, Overflow};
 use layout_debug;
+use model::{AdjoiningMargins, CollapsibleMargins};
 use model::{IntrinsicISizes, MaybeAuto, SizeConstraint};
 use std::cmp::{max, min};
 use std::ops::Range;
@@ -803,6 +804,9 @@ impl FlexFlow {
         self.block_flow.fragment.border_box.size.block = total_block_size;
         self.block_flow.base.position.size.block = total_block_size;
 
+        let block_start = AdjoiningMargins::from_margin(self.block_flow.fragment.margin.block_start);
+        let block_end = AdjoiningMargins::from_margin(self.block_flow.fragment.margin.block_end);
+        self.block_flow.base.collapsible_margins = CollapsibleMargins::Collapse(block_start, block_end);
     }
 }
 
@@ -939,10 +943,6 @@ impl Flow for FlexFlow {
     }
 
     fn assign_block_size(&mut self, layout_context: &LayoutContext) {
-        self.block_flow
-            .assign_block_size_block_base(layout_context,
-                                          None,
-                                          MarginsMayCollapseFlag::MarginsMayNotCollapse);
         match self.main_mode {
             Direction::Inline => self.inline_mode_assign_block_size(layout_context),
             Direction::Block => self.block_mode_assign_block_size(),
